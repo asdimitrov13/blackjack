@@ -5,6 +5,10 @@ App = {
   balance: 0,
   instance: null,
 
+  cardNames: ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'],
+  cardSuits: ['&clubs;', '&diams;', '&hearts;', '&spades;'],
+  cardsDrawn: [],
+
   init: function() {
     
     return App.initWeb3();
@@ -35,6 +39,37 @@ App = {
     });
   },
 
+  listenForEvents: function() {
+      App.instance.cardDrawn({}, {
+        fromBlock: 'latest',
+        toBlock: 'latest'
+      }).watch(function(error, event) {
+
+        if(!error) {
+          var cardVal = event.args.card.c[0];
+
+          if (App.cardsDrawn.indexOf(cardVal) === -1) {
+            App.cardsDrawn.push(cardVal);
+            var cardString = App.cardNames[cardVal % 13] + " " + App.cardSuits[Math.floor(cardVal / 13)] + " ";
+            var cardSuit = Math.floor(cardVal / 13);
+            if (event.args.forPlayer) {
+              if (cardSuit === 2 || cardSuit === 3) {
+                $("#playerCards").append(App.cardNames[cardVal % 13] + " <span style=\"color:red;\">" + App.cardSuits[cardSuit] + "</span> ");
+              } else {
+                $("#playerCards").append(App.cardNames[cardVal % 13] + " " + App.cardSuits[cardSuit]);
+              }
+            } else {
+              if (cardSuit === 2 || cardSuit === 3) {
+                $("#dealerCards").append(App.cardNames[cardVal % 13] + " <span style=\"color:red;\">" + App.cardSuits[cardSuit] + "</span> ");
+              } else {
+                $("#dealerCards").append(App.cardNames[cardVal % 13] + " " + App.cardSuits[cardSuit]);
+              }
+            }
+          }
+        }
+      });
+  },
+
   startGame: function() {
     App.instance.startGame({from: App.account, value: web3.toWei(1, "ether")});
   },
@@ -63,6 +98,7 @@ App = {
     // Load contract data
     App.contracts.Blackjack.deployed().then(function(_instance) {
       App.instance = _instance;
+      App.listenForEvents();
       return App.instance;
     });
 
@@ -72,7 +108,6 @@ App = {
     $("#startGame").on("click", App.startGame);
     $("#hit").on("click", App.hit);
     $("#stand").on("click", App.stand);
-
 
   }
 

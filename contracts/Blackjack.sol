@@ -26,11 +26,12 @@ contract Blackjack is usingOraclize{
 	mapping(uint => address) drawRequests;
 	mapping(uint => bool) drawIsForPlayer;
 
-	uint public cardd;
-	uint public cardp;
 
-
-	
+	event cardDrawn (
+		address gameId,
+		uint card,
+		bool forPlayer
+	);
 
 	constructor() {
 		oraclize_setProof(proofType_Ledger);
@@ -129,10 +130,11 @@ contract Blackjack is usingOraclize{
 	        		games[_playerAddress].playerAces--;
 	        	}
 
+	        	emit cardDrawn(_playerAddress, card, true);
+
 	        	if (games[_playerAddress].playerPts > 21) {
 	        		resolveGame(_playerAddress, false, false);
 	        	}
-	        	cardp = card;
 	        } else {
 	        	games[_playerAddress].dealerCards.push(card);
 	        	games[_playerAddress].dealerPts += cardValues[card % 13];
@@ -145,6 +147,8 @@ contract Blackjack is usingOraclize{
 	        		games[_playerAddress].dealerPts -= 10;
 	        		games[_playerAddress].dealerAces--;
 	        	}
+
+	        	emit cardDrawn(_playerAddress, card, false);
 	        	//if player stands dealer will draw until he goes over 17
 	        	if (games[_playerAddress].playerStand && games[_playerAddress].dealerPts < 17) {
 	        		drawCard(_playerAddress, drawIsForPlayer[qId]);
@@ -153,8 +157,6 @@ contract Blackjack is usingOraclize{
 	        	if (games[_playerAddress].dealerPts > 21) {
 	        		resolveGame(_playerAddress, true, false);
 	        	}
-
-	        	cardd = card;
 	        }
 	    } else {
 	    	drawCard(_playerAddress, drawIsForPlayer[qId]);
@@ -168,7 +170,7 @@ contract Blackjack is usingOraclize{
 
 //Blackjack.deployed().then(c => c.send(web3.toWei(1, "ether"), {from: web3.eth.accounts[1]}).then(tx => {console.log(tx.tx); tx.logs.length && console.log(tx.logs[0].event, tx.logs[0].args)}))
 
-//Blackjack.deployed().then(c => c.send(web3.toWei(5, "ether"), {from: web3.eth.accounts[0]}).then(tx => {}))
+//Blackjack.deployed().then(c => {c.send(web3.toWei(5, "ether"), {from: web3.eth.accounts[0]}).then(tx => {}); app=c;})
 
 //app.startGame({from:web3.eth.accounts[0], value: web3.toWei(1, "ether")});
 

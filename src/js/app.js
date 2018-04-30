@@ -7,7 +7,9 @@ App = {
 
   cardNames: ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'],
   cardSuits: ['&clubs;', '&diams;', '&hearts;', '&spades;'],
+  gameId: null,
   cardsDrawn: [],
+  gameInProgress: false,
 
   init: function() {
     
@@ -45,25 +47,57 @@ App = {
         toBlock: 'latest'
       }).watch(function(error, event) {
 
-        if(!error) {
+        if (!error) {
           var cardVal = event.args.card.c[0];
 
-          if (App.cardsDrawn.indexOf(cardVal) === -1) {
+          if (App.cardsDrawn.indexOf(cardVal) === -1 && App.gameInProgress) {
             App.cardsDrawn.push(cardVal);
-            var cardString = App.cardNames[cardVal % 13] + " " + App.cardSuits[Math.floor(cardVal / 13)] + " ";
             var cardSuit = Math.floor(cardVal / 13);
+            var cardString = App.cardNames[cardVal % 13] + " " + App.cardSuits[cardSuit] + " ";
+            
             if (event.args.forPlayer) {
-              if (cardSuit === 2 || cardSuit === 3) {
+              if (cardSuit === 1 || cardSuit === 2) {
                 $("#playerCards").append(App.cardNames[cardVal % 13] + " <span style=\"color:red;\">" + App.cardSuits[cardSuit] + "</span> ");
               } else {
-                $("#playerCards").append(App.cardNames[cardVal % 13] + " " + App.cardSuits[cardSuit]);
+                $("#playerCards").append(App.cardNames[cardVal % 13] + " " + App.cardSuits[cardSuit] + " ");
               }
             } else {
-              if (cardSuit === 2 || cardSuit === 3) {
+              if (cardSuit === 1 || cardSuit === 2) {
                 $("#dealerCards").append(App.cardNames[cardVal % 13] + " <span style=\"color:red;\">" + App.cardSuits[cardSuit] + "</span> ");
               } else {
-                $("#dealerCards").append(App.cardNames[cardVal % 13] + " " + App.cardSuits[cardSuit]);
+                $("#dealerCards").append(App.cardNames[cardVal % 13] + " " + App.cardSuits[cardSuit] + " ");
               }
+            }
+          }
+        }
+      });
+
+      App.instance.newGame({}, {
+        fromBlock: 'latest',
+        toBlock: 'latest'
+      }).watch(function(error, event) {
+        if (!error && !App.gameInProgress) {
+          App.gameId = event.args.gameId.c[0];
+          App.gameInProgress = true;
+          App.cardsDrawn = [];
+          $("#playerCards").html("Your cards: ");
+          $("#dealerCards").html("Dealer's cards: ");
+        }
+      });
+
+      App.instance.gameEnd({}, {
+        fromBlock: 'latest',
+        toBlock: 'latest'
+      }).watch(function(error, event) {
+        if (!error) {
+          if (App.gameInProgress && App.gameId === event.args.gameId.c[0]) {
+            App.gameInProgress = false;
+            if (event.args.isDraw) {
+              alert("You drew, however you still get your bet back");
+            } else if (event.args.playerWon) {
+              alert("Congratulations, you won 2 ehter!");
+            } else {
+              alert("You lose, better luck next time!");
             }
           }
         }
@@ -101,9 +135,6 @@ App = {
       App.listenForEvents();
       return App.instance;
     });
-
-    $("#dealerCards").html("Dealer's cards: ");
-    $("#playerCards").html("Your cards: ");
 
     $("#startGame").on("click", App.startGame);
     $("#hit").on("click", App.hit);

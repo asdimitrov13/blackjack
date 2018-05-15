@@ -77,6 +77,9 @@ App = {
         toBlock: 'latest'
       }).watch(function(error, event) {
         if (!error && !App.gameInProgress) {
+          $("#startGame").attr("disabled", true);
+          $("#hit").attr("disabled", false);
+          $("#stand").attr("disabled", false);
           App.gameId = event.args.gameId.c[0];
           App.gameInProgress = true;
           App.cardsDrawn = [];
@@ -91,6 +94,9 @@ App = {
       }).watch(function(error, event) {
         if (!error) {
           if (App.gameInProgress && App.gameId === event.args.gameId.c[0]) {
+            $("#startGame").attr("disabled", false);
+            $("#hit").attr("disabled", true);
+            $("#stand").attr("disabled", true);
             App.gameInProgress = false;
             if (event.args.isDraw) {
               alert("You drew, however you still get your bet back");
@@ -99,6 +105,9 @@ App = {
             } else {
               alert("You lose, better luck next time!");
             }
+            web3.eth.getBalance(App.account, function(err, balance){
+              $("#playerBalance").html("Your Balance: " + balance.c[0] / 10000 + " ether");
+            });
           }
         }
       });
@@ -113,6 +122,7 @@ App = {
   },
 
   stand: function() {
+    $("#hit").attr("disabled", true);
     App.instance.stand({from: App.account});
   },
 
@@ -139,6 +149,8 @@ App = {
     $("#startGame").on("click", App.startGame);
     $("#hit").on("click", App.hit);
     $("#stand").on("click", App.stand);
+    $("#hit").attr("disabled", true);
+    $("#stand").attr("disabled", true);
 
   }
 

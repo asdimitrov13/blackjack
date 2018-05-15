@@ -22,7 +22,8 @@ contract Blackjack is usingOraclize{
 		uint8 playerAces;
 		uint8 dealerAces;
 		bool inProgress;
-		uint blockNumber;
+		bool firstDealDone;
+		uint cardsCount;
 	}
 
 	mapping(address => Game) public games;
@@ -57,10 +58,12 @@ contract Blackjack is usingOraclize{
 	function startGame() external payable {
 		require(msg.value == 1 ether);
 		require(!games[msg.sender].inProgress);
-		games[msg.sender] = Game(id, msg.sender, new uint[](0), new uint[](0), 0, 0, false, 0, 0, true, block.number);
+		games[msg.sender] = Game(id, msg.sender, new uint[](0), new uint[](0), 0, 0, false, 0, 0, true, false, 0);
 		id++;
+		drawCard(msg.sender, true);
+		drawCard(msg.sender, false);  
+		drawCard(msg.sender, true);
 		drawCard(msg.sender, false); 
-		drawCard(msg.sender, true); 
 		emit newGame(games[msg.sender].gameId);
 	}
 
@@ -92,12 +95,10 @@ contract Blackjack is usingOraclize{
 		address _playerAddress = msg.sender;
 		require(games[_playerAddress].inProgress);
 		drawCard(_playerAddress, true);
-		if (games[_playerAddress].dealerPts < 17) {
-			drawCard(_playerAddress, false);
-		}
 	}
 
 	function () external payable{
+
 	}
 
 	function resolveGame(address _playerAddress, bool playerWins, bool isDraw) private {
@@ -141,6 +142,8 @@ contract Blackjack is usingOraclize{
 	        }
 
 	        if (!cardAlreadyDrawn) {
+	        	games[_playerAddress].cardsCount++;
+
 		        if (drawIsForPlayer[qId]) {
 		        	games[_playerAddress].playerCards.push(card);
 		        	games[_playerAddress].playerPts += cardValues[card % 13];
@@ -160,6 +163,8 @@ contract Blackjack is usingOraclize{
 		        		resolveGame(_playerAddress, false, false);
 		        	} else if (games[_playerAddress].playerPts == 21) {
 		        		resolveGame(_playerAddress, true, false);
+		        	} else if (games[_playerAddress].dealerPts < 17 && games[_playerAddress].firstDealDone) {
+		        		drawCard(_playerAddress, false);
 		        	}
 		        } else {
 		        	games[_playerAddress].dealerCards.push(card);
@@ -191,6 +196,9 @@ contract Blackjack is usingOraclize{
 		        		}
 		        	}
 		        }
+		        if (games[_playerAddress].cardsCount == 4) {
+		        	games[_playerAddress].firstDealDone = true;
+		        }
 		    } else {
 		    	drawCard(_playerAddress, drawIsForPlayer[qId]);
 		    }
@@ -204,7 +212,7 @@ contract Blackjack is usingOraclize{
 
 //Blackjack.deployed().then(c => c.send(web3.toWei(1, "ether"), {from: web3.eth.accounts[1]}).then(tx => {console.log(tx.tx); tx.logs.length && console.log(tx.logs[0].event, tx.logs[0].args)}))
 
-//Blackjack.deployed().then(c => {c.send(web3.toWei(5, "ether"), {from: web3.eth.accounts[0]}).then(tx => {}); app=c;})
+//Blackjack.deployed().then(c => {c.send(web3.toWei(10, "ether"), {from: web3.eth.accounts[0]}).then(tx => {}); app=c;})
 
 //app.startGame({from:web3.eth.accounts[0], value: web3.toWei(1, "ether")});
 
